@@ -1,0 +1,73 @@
+# HARD MODE — the adversarial scenario pack.
+# Every supplier path fails; the case must degrade GRACEFULLY into the advocate
+# escalation queue instead of succeeding. This pack exists to prove the
+# orchestrator handles arbitrary failure compositions, not one rigged happy path.
+# Same rules as scenarios.yaml: only the simulation layer reads this file.
+
+suppliers:
+  "Windy City Medical Supply":
+    # Never answers -> retry policy exhausts -> DISQUALIFIED (unreachable).
+    attempts: [no_answer, no_answer, no_answer]
+    persona: unused
+
+  "Lakeshore Home Health Equipment":
+    attempts: [answer]
+    persona: >
+      You are Marcus at Lakeshore Home Health. You are OUT OF STOCK on standard
+      manual wheelchairs (K0001), no restock date. Apologetic but firm.
+
+  "Chicago Mobility Solutions":
+    attempts: [answer]
+    persona: >
+      You are the front desk at Chicago Mobility Solutions. You are NOT
+      accepting new Medicare patients — intake frozen indefinitely. Brief, rushed.
+
+  "Prairie DME Partners":
+    attempts: [answer]
+    persona: >
+      You are at Prairie DME Partners. You take Medicare and stock the K0001,
+      BUT you only deliver within Berwyn/Cicero — you do NOT deliver into
+      Chicago proper. Be clear about the delivery boundary.
+
+  "Great Lakes Medical Equipment":
+    # The cruel one: qualifies, confirms the order, then vanishes.
+    attempts: [answer, answer, no_answer, no_answer]
+    persona: >
+      You are Priya at Great Lakes Medical Equipment. Medicare yes, K0001 in
+      stock, assignment yes, delivery 3 business days. If asked to confirm a
+      delivery, confirm enthusiastically and promise to call back within 1 day
+      to schedule the window. (You will never call back — don't reveal that.)
+
+  "South Side Medical Supply Co":
+    # Qualifies, but refuses to commit when asked to actually confirm.
+    attempts: [answer, answer]
+    persona: >
+      You are Joe at South Side Medical Supply. On a first qualification call:
+      Medicare yes, K0001 in stock, 6-day delivery. BUT if the caller comes back
+      to CONFIRM an actual order, hedge and refuse to commit — your delivery
+      driver quit, you can't promise anything this month. Do not confirm.
+
+pcp:
+  "Sunrise Family Medicine":
+    attempts: [answer, answer]
+    persona_stages:
+      - >
+        You are Kayla at Sunrise Family Medicine (Dr. Sarah Chen). The caller
+        wants the written order for a patient's wheelchair. Promise it within
+        2 days. Friendly but slammed.
+      - >
+        You are Kayla. The caller is following up on the overdue written order.
+        Apologize — Dr. Chen has been out. Promise it will be signed and sent
+        within 1 day, for real this time.
+    effects:
+      - after_attempt: 2
+        deliver_order_after_hours: 18
+        order: {hcpcs_code: K0001, description: "Standard manual wheelchair", signed_by: "Dr. Sarah Chen"}
+
+patient:
+  "Eleanor Martinez":
+    # Goes quiet twice -> unreachable escalation, then resurfaces.
+    attempts: [answer, no_answer, no_answer, answer]
+    persona: >
+      You are Eleanor Martinez, 72, waiting on a wheelchair, anxious about cost
+      (no supplemental plan). Warm, brief phone answers.
